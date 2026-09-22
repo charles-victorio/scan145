@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOM to 3D seamless transition (demo)</title>
+<style>
+  :root{ --bg:#f5f5f7; --fg:#1a1a1a; --card:#ffffff; --accent:#6c5ce7; --muted:#6b6b76; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--fg);}
+
+  #stage{position:relative;width:100vw;height:100vh;}
+
+  #app{
+    position:absolute;top:0;left:0;width:100vw;height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:22px;text-align:center;padding:20px;background:var(--bg);
+  }
+  #app h1{font-size:clamp(1.6rem,4vw,2.6rem);margin:0;max-width:700px;}
+  #app p{max-width:480px;color:var(--muted);margin:0;line-height:1.5;}
+  .cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+  .card{
+    background:var(--card);padding:18px 24px;border-radius:14px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.08);user-select:none;font-size:0.95rem;min-width:110px;
+  }
+  button.cta{
+    background:var(--accent);color:white;border:none;padding:14px 30px;
+    border-radius:10px;font-size:1rem;cursor:pointer;font-weight:600;
+    box-shadow:0 6px 20px rgba(108,92,231,0.35);
+  }
+  button.cta:active{transform:scale(0.97);}
+
+  #hint{
+    position:fixed;bottom:16px;left:0;right:0;text-align:center;
+    color:var(--muted);font-size:0.8rem;opacity:0;transition:opacity 0.6s;pointer-events:none;
+  }
+  #hint.show{opacity:1;}
+
+  #css3d-container{
+    position:fixed;top:0;left:0;width:100vw;height:100vh;
+    pointer-events:none;z-index:5;display:none;
+  }
+  #css3d-container.active{display:block;pointer-events:auto;}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="app">
+    <h1>This is a completely normal webpage.</h1>
+    <p>Real HTML flow, real CSS, real clickable elements -- nothing canvas-based yet. Click the button and watch it become a live Three.js scene without a single redraw.</p>
+    <div class="cards">
+      <div class="card">Card A</div>
+      <div class="card">Card B</div>
+      <div class="card">Card C</div>
+    </div>
+    <button class="cta" id="go3d">Enter 3D -></button>
+  </div>
+</div>
+
+<div id="css3d-container"></div>
+<div id="hint">Drag to orbit - this is still the same DOM element</div>
+
+<script type="module">
+import * as THREE from "three";
+import { CSS3DRenderer, CSS3DObject } from "three/addons/renderers/CSS3DRenderer.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const btn = document.getElementById("go3d");
+const app = document.getElementById("app");
+const container = document.getElementById("css3d-container");
+const hint = document.getElementById("hint");
+
+let scene, camera, renderer, controls, cssObject, distance;
+
+btn.addEventListener("click", enter3D);
+
+function enter3D() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const fov = 50;
+
+  // Closed-form: distance at which an unscaled (1 world-unit = 1 CSS px)
+  // object of height `h` exactly fills the vertical FOV.
+  distance = h / (2 * Math.tan(THREE.MathUtils.degToRad(fov) / 2));
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(fov, w / h, 1, distance * 20);
+  camera.position.set(0, 0, distance);
+  camera.lookAt(0, 0, 0);
+
+  renderer = new CSS3DRenderer();
+  renderer.setSize(w, h);
+  container.innerHTML = "";
+  container.appendChild(renderer.domElement);
+  container.classList.add("active");
+
+  // Freeze the exact pixel box `app` already occupies -- this, plus the
+  // solved camera distance above, is what makes the swap invisible: the
+  // CSS3D render of `app` at scale 1 reproduces exactly what was already
+  // on screen a moment ago as flat, normal-flow HTML.
+  app.style.width = w + "px";
+  app.style.height = h + "px";
+
+  cssObject = new CSS3DObject(app);
+  cssObject.position.set(0, 0, 0);
+  scene.add(cssObject);
+
+  // First render reparents #app into the CSS3D layer at a transform that
+  // matches the camera exactly -> no visual jump.
+  renderer.render(scene, camera);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = distance * 0.3;
+  controls.maxDistance = distance * 3;
+
+  animate();
+  setTimeout(() => {
+    flourish();
+    hint.classList.add("show");
+  }, 500);
+
+  window.addEventListener("resize", onResize);
+}
+
+function onResize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+function flourish() {
+  // NOTE: cssObject's position/rotation/scale are never touched again,
+  // here or anywhere else. Every bit of apparent motion below is the
+  // camera moving through world space -- the "screen" itself is 100%
+  // static from the moment it was created.
+  const start = performance.now();
+  const dur = 1800;
+  const startZ = camera.position.z;
+  function step(now) {
+    const t = Math.min(1, (now - start) / dur);
+    const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    camera.position.z = startZ + ease * distance * 0.6;
+    camera.position.x = Math.sin(ease * Math.PI * 0.7) * distance * 0.5;
+    camera.position.y = Math.sin(ease * Math.PI * 0.4) * distance * 0.15;
+    camera.lookAt(0, 0, 0);
+    if (t < 1) requestAnimationFrame(step);
+    else controls.target.set(0, 0, 0);
+  }
+  requestAnimationFrame(step);
+}
+</script>
+</body>
+</html>

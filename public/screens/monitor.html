@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>charlesv.xyz — now</title>
+<style>
+  @font-face {
+    font-family: "Iosevka Fixed SS12";
+    src: url("/fonts/IosevkaFixedSS12-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+
+  /* This page renders into the monitor's screen quad (~1.74:1) in the 3D
+     scene, at a fixed raster size — there's no scrolling once it's placed,
+     so it just centers a single line/status in the middle of the frame. */
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #fff;
+    color: #000;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Iosevka Fixed SS12", ui-monospace, monospace;
+  }
+
+  #status {
+    width: 100%;
+    text-align: center;
+  }
+
+  .small {
+    font-size: 6vw;
+    line-height: 1.1;
+  }
+
+  .big {
+    font-size: 15vw;
+    font-weight: 700;
+    line-height: 1.05;
+    word-break: break-word;
+  }
+
+  .duration {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .idle {
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+<div id="status">&nbsp;</div>
+
+<script>
+  const API_URL = "https://time-tracker.charles1victorio.workers.dev/current";
+  const statusEl = document.getElementById("status");
+
+  // Drop leading zero-valued units (e.g. just "5s", or "3m 4s"), but
+  // always keep seconds so it never renders empty.
+  function formatDuration(totalSeconds) {
+    const s = Math.max(0, Math.floor(totalSeconds));
+    const days = Math.floor(s / 86400);
+    const hours = Math.floor((s % 86400) / 3600);
+    const minutes = Math.floor((s % 3600) / 60);
+    const seconds = s % 60;
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (days > 0 || hours > 0) parts.push(`${hours}h`);
+    if (days > 0 || hours > 0 || minutes > 0) parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
+    return parts.join(" ");
+  }
+
+  function renderTracking(activity, startMs, deductedSeconds) {
+    const activityLabel = String(activity).toLowerCase();
+    statusEl.innerHTML =
+      `<div class="small">I've been</div>` +
+      `<div class="big activity">${activityLabel}</div>` +
+      `<div class="small">for</div>` +
+      `<div class="big duration" id="duration"></div>`;
+    const durationEl = document.getElementById("duration");
+
+    function tick() {
+      const elapsedSeconds = (Date.now() - startMs) / 1000;
+      const effectiveSeconds = elapsedSeconds - deductedSeconds;
+      durationEl.textContent = formatDuration(effectiveSeconds);
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  function renderIdle() {
+    statusEl.innerHTML = `<div class="big idle">Not currently tracking</div>`;
+  }
+
+  async function init() {
+    try {
+      const res = await fetch(API_URL);
+      if (res.status === 204) {
+        renderIdle();
+        return;
+      }
+      if (!res.ok) {
+        renderIdle();
+        return;
+      }
+      const data = await res.json();
+      if (!data || !data.activity || !data.starttime) {
+        renderIdle();
+        return;
+      }
+      renderTracking(data.activity, new Date(data.starttime).getTime(), data.deducted_seconds || 0);
+    } catch (err) {
+      renderIdle();
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

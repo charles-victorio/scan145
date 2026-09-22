@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>charlesv.xyz</title>
+<style>
+  @font-face {
+    font-family: "Iosevka Fixed SS12";
+    src: url("/fonts/IosevkaFixedSS12-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+
+  /* body: for previewing this file directly in a browser.
+     .content-root: what actually applies once this is fetched + injected
+     into the app's intro overlay (see src/domFetch.ts, src/intro.ts) — it
+     genuinely fills the browser viewport at that point, so this is a normal,
+     fully responsive page layout, not constrained to any fixed raster. */
+  body, .content-root {
+    margin: 0;
+    height: 100%;
+    overflow-y: auto;
+    background: #fff;
+    color: #000;
+    padding: 2rem;
+    font-family: "Iosevka Fixed SS12", ui-monospace, monospace;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    margin: 0 0 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 400;
+  }
+
+  .portrait {
+    display: block;
+    margin: 0 auto 1.5rem;
+    width: 225px;
+    height: auto;
+    /* border: 5px solid #000; */
+    transform: rotate(1.25deg);
+  }
+
+  p {
+    margin: 0 0 1rem;
+  }
+
+  a { color: #000; }
+
+  .button-row {
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+
+  .button {
+    display: inline-block;
+    padding: 0.6rem 1.75rem;
+    border: 1px solid #000;
+    color: #000;
+    text-decoration: none;
+  }
+
+  .button:hover {
+    background: #000;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>charlesv.xyz</h1>
+
+<img class="portrait" src="/suit_ca.webp" alt="Charles Victorio">
+
+<p>Hello, I am Charles Victorio.</p>
+<p>This website is a work in progress.</p>
+<p>
+  If you are looking for Research Match, the UCLA program, go to
+  <a href="https://researchmatch.charlesv.xyz">researchmatch.charlesv.xyz</a>.
+</p>
+
+<div class="button-row">
+  <a class="button" href="#" id="explore-btn">Explore</a>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+Model Information:
+* title:	Lenovo Thinkpad L410 (Open)
+* source:	https://sketchfab.com/3d-models/lenovo-thinkpad-l410-open-16f1a19af9e6431f83ec5ef13e106435
+* author:	AquaEquinox (https://sketchfab.com/ohno9119)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Lenovo Thinkpad L410 (Open)" (https://sketchfab.com/3d-models/lenovo-thinkpad-l410-open-16f1a19af9e6431f83ec5ef13e106435) by AquaEquinox (https://sketchfab.com/ohno9119) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

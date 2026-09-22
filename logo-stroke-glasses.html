@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo Stroke Animation — 3D Glasses</title>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+  }
+
+  :root {
+    --gap: 6px; /* how far apart the red/cyan copies sit — increase for a stronger effect */
+  }
+
+  #logo-wrap {
+    width: 220px;
+    height: auto;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  /* The "pen" outline that draws itself first */
+  .draw {
+    fill: none;
+    stroke: #000000;
+    stroke-width: 1;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    transition: stroke-dashoffset ease, opacity 0.4s ease;
+  }
+
+  /* The real filled artwork, hidden until the drawing finishes */
+  .fillshape {
+    fill: #000000;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  /* Red/cyan copies sit BEHIND the solid black fill. They start stacked
+     directly on top of the black (no offset) and slide outward into their
+     resting --gap position once revealed — the black itself is always the
+     exact, full logo shape, unaffected by any of this. */
+  .glasses-shape {
+    mix-blend-mode: multiply;
+    opacity: 0;
+
+    filter: blur(1px);
+    transform: translate(0, 0);
+    transition: opacity 0.5s ease, transform 0.6s ease;
+  }
+  .glasses-shape.is-on {
+    opacity: 1;
+  }
+  .g-red  { fill: #FF0000; }
+  .g-cyan { fill: #00FFFF; }
+  .g-red.is-on  { transform: translate(calc(-1 * var(--gap)), 0); }
+  .g-cyan.is-on { transform: translate(var(--gap), 0); }
+
+  /* If the visitor prefers reduced motion, just show the finished logo, no animation */
+  @media (prefers-reduced-motion: reduce) {
+    .draw { display: none; }
+    .fillshape { opacity: 1; }
+    .glasses-shape { opacity: 1; transform: translate(0, 0); }
+    .g-red { transform: translate(calc(-1 * var(--gap)), 0); }
+    .g-cyan { transform: translate(var(--gap), 0); }
+  }
+</style>
+</head>
+<body>
+
+  <div id="logo-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="10 0 140 160">
+      <!-- Stroke-drawn outlines (animated) -->
+      <g id="strokes">
+        <path class="draw" d="M79,13 31,61 80,109 127,60 115,50 79,86 55,62 91,24 Z"/>
+        <path class="draw" d="M128,100 116,88 79,125 43,89 31,100 79,148 Z"/>
+      </g>
+
+      <!-- Real filled logo (fades in once drawing completes) -->
+      <g id="fills">
+
+        <!-- Red/cyan glasses layers, behind the black — fade in last -->
+        <g id="g-red-group" class="glasses-shape g-red">
+          <path d="M79,13 31,61 80,109 127,60 115,50 79,86 55,62 91,24 Z"/>
+          <path d="M128,100 116,88 79,125 43,89 31,100 79,148 Z"/>
+        </g>
+        <g id="g-cyan-group" class="glasses-shape g-cyan">
+          <path d="M79,13 31,61 80,109 127,60 115,50 79,86 55,62 91,24 Z"/>
+          <path d="M128,100 116,88 79,125 43,89 31,100 79,148 Z"/>
+        </g>
+
+        <!-- Solid black logo, on top -->
+        <path class="fillshape" d="M79,13 31,61 80,109 127,60 115,50 79,86 55,62 91,24 Z"/>
+        <path class="fillshape" d="M128,100 116,88 79,125 43,89 31,100 79,148 Z"/>
+      </g>
+    </svg>
+  </div>
+
+<script>
+(function () {
+  var STROKE_DURATION = 0.8;   // seconds each shape takes to draw
+  var STAGGER = 0.55;          // delay before the next shape starts drawing
+  var GLASSES_DELAY = 0.4;     // pause after the fill lands before red/cyan fade in
+
+  var drawPaths    = Array.prototype.slice.call(document.querySelectorAll('.draw'));
+  var fillPaths    = Array.prototype.slice.call(document.querySelectorAll('.fillshape'));
+  var glassesShapes = Array.prototype.slice.call(document.querySelectorAll('.glasses-shape'));
+
+  function runAnimation() {
+    // Prep each stroke path: dash array/offset = its own length, so it starts fully hidden
+    drawPaths.forEach(function (path) {
+      var length = path.getTotalLength();
+      path.style.strokeDasharray = length;
+      path.style.strokeDashoffset = length;
+    });
+
+    // Force a reflow so the browser registers the starting state before we transition
+    void document.body.offsetHeight;
+
+    drawPaths.forEach(function (path, i) {
+      path.style.transitionDuration = STROKE_DURATION + 's';
+      path.style.transitionDelay = (i * STAGGER) + 's';
+      path.style.strokeDashoffset = '0';
+    });
+
+    // Once the last stroke finishes, swap over to the solid filled logo
+    var totalDrawTime = (drawPaths.length - 1) * STAGGER + STROKE_DURATION;
+    window.setTimeout(function () {
+      fillPaths.forEach(function (path) {
+        path.style.opacity = '1';
+      });
+
+      glassesShapes.forEach(function (el) {
+        el.classList.add('is-on');
+      });
+    }, totalDrawTime * 1000);
+  }
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion) {
+    // requestAnimationFrame twice to make sure layout has settled first
+    requestAnimationFrame(function () {
+      requestAnimationFrame(runAnimation);
+    });
+  } else {
+    fillPaths.forEach(function (path) { path.style.opacity = '1'; });
+    glassesShapes.forEach(function (el) { el.classList.add('is-on'); });
+  }
+})();
+</script>
+
+</body>
+</html>
