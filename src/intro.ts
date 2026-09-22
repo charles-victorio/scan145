@@ -101,6 +101,11 @@ export function initIntro(opts: InitIntroOptions): void {
     position: "fixed",
     inset: "0",
     zIndex: "2000",
+    // Set directly, not left to the .content-root rule from splash.html's
+    // fetched stylesheet — that fetch takes a moment, and index.html's own
+    // white background covers the page only until this element exists, so
+    // this needs to be opaque white immediately, not once the fetch lands.
+    background: "#fff",
   });
   document.body.appendChild(overlay);
 

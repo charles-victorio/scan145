@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>scan1_145 — Scan Viewer</title>
     <style>
-      html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+      /* White, not black: the intro (splash + charlesv.xyz page) is white,
+         and this is what's visible during the brief window before any JS
+         has painted anything over it — src/intro.ts's overlay also sets its
+         own inline white background so it never has to wait on splash.html's
+         fetched stylesheet to stop being transparent. */
+      html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
       #app { position: fixed; inset: 0; }
       canvas { display: block; }
       #hud {
