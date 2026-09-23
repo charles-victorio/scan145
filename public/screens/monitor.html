@@ -133,13 +133,17 @@
         renderIdle();
         return;
       }
-      // Prefer the server's own already-correct figure; fall back to
-      // deriving it locally (skew-prone, but better than nothing) only if
-      // the API response is ever missing it.
-      const baselineSeconds =
-        typeof data.effective_seconds === "number"
-          ? data.effective_seconds
-          : Math.max(0, (Date.now() - new Date(data.starttime).getTime()) / 1000 - (data.deducted_seconds || 0));
+      // NOT data.effective_seconds / data.elapsed_seconds — polling the API
+      // repeatedly (minutes apart, same activity, starttime unchanged) shows
+      // those fields never move, meaning they read as a static snapshot
+      // rather than something recomputed per-request. starttime itself IS
+      // stable across those same polls, so derive elapsed time from that
+      // instead: computed once here via Date.now() (consistent and
+      // deterministic across reloads, unlike a possibly-stale field), then
+      // advanced smoothly in renderTracking() via performance.now().
+      const startMs = new Date(data.starttime).getTime();
+      const deductedSeconds = data.deducted_seconds || 0;
+      const baselineSeconds = Math.max(0, (Date.now() - startMs) / 1000 - deductedSeconds);
       renderTracking(data.activity, baselineSeconds);
     } catch (err) {
       renderIdle();
