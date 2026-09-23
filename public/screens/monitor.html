@@ -82,7 +82,19 @@
     return parts.join(" ");
   }
 
-  function renderTracking(activity, startMs, deductedSeconds) {
+  // baselineSeconds is the server's own already-correct elapsed count at
+  // fetch time (deducted_seconds already applied). From there, ticking
+  // forward uses performance.now() — a local monotonic clock — instead of
+  // recomputing against Date.now() each second. Recomputing against
+  // Date.now() every tick means any skew between this machine's wall clock
+  // and the API server's clock (a few seconds is common, doesn't need to be
+  // much) shows up directly as error in the displayed duration every single
+  // tick — clamped to 0 by formatDuration whenever local time reads earlier
+  // than the server's start time, so it visibly "sticks at 0s" until real
+  // elapsed time finally exceeds the skew. performance.now() has no
+  // relationship to wall-clock time at all, so it isn't affected by that
+  // skew no matter how large it is.
+  function renderTracking(activity, baselineSeconds) {
     const activityLabel = String(activity).toLowerCase();
     statusEl.innerHTML =
       `<div class="small">I've been</div>` +
@@ -90,11 +102,11 @@
       `<div class="small">for</div>` +
       `<div class="big duration" id="duration"></div>`;
     const durationEl = document.getElementById("duration");
+    const localStart = performance.now();
 
     function tick() {
-      const elapsedSeconds = (Date.now() - startMs) / 1000;
-      const effectiveSeconds = elapsedSeconds - deductedSeconds;
-      durationEl.textContent = formatDuration(effectiveSeconds);
+      const localElapsed = (performance.now() - localStart) / 1000;
+      durationEl.textContent = formatDuration(baselineSeconds + localElapsed);
     }
 
     tick();
@@ -121,7 +133,14 @@
         renderIdle();
         return;
       }
-      renderTracking(data.activity, new Date(data.starttime).getTime(), data.deducted_seconds || 0);
+      // Prefer the server's own already-correct figure; fall back to
+      // deriving it locally (skew-prone, but better than nothing) only if
+      // the API response is ever missing it.
+      const baselineSeconds =
+        typeof data.effective_seconds === "number"
+          ? data.effective_seconds
+          : Math.max(0, (Date.now() - new Date(data.starttime).getTime()) / 1000 - (data.deducted_seconds || 0));
+      renderTracking(data.activity, baselineSeconds);
     } catch (err) {
       renderIdle();
     }
